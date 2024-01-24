@@ -815,19 +815,20 @@ class DQNTrainer:
 
 	def add_to_replay_buffer(self, n: int):
 		'''Makes n steps, adding to the replay buffer (and logging any results).'''
+		last_episode_len = None
 		# obs =  self.agent.envs.reset() # we need to get the next observation
-		# # same things self.agent.envs.reset()
 		# actions = self.agent.get_actions(obs)
 		# next_obs, rewards, dones, infos = self.envs.step(actions)
-		# for _ in range(1,n):
-		# 	self.rb.add(next_obs, actions, rewards, dones, infos)
-		# wandb.log({"steps": self.agent.steps, "epsilon": self.agent.epsilon})
+
 		for steps in range(n):
 			data = self.agent.play_step()
-			wandb.log( {"logged_info": data }, steps = steps)
-			# the steps is giving us weiweird errors
-			
-
+			for dp in data: 
+				if "episode" in data.keys():
+					last_episode_len = dp["episode"]["l"] # gets the length of the episode
+					if self.args.use_wandb:
+						wandb.log( { "episode_len": last_episode_len}, step=self.agent.steps)
+		return last_episode_len
+		
 
 	def training_step(self) -> None:
 		'''
@@ -838,15 +839,24 @@ class DQNTrainer:
 		s, a, r, d, s_new = data.observations, data.actions, data.rewards, data.dones, data.next_observations
 		with t.inference_mode():
 			target_max = self.target_network(s_new).max(-1).values
+			# we do max(-1), its the action dim -> shape is batch_size; gets you the value of the best action at s(t+1) according to the target network
 			# this gies us the value of the best s(t+1) according to the target network
 		predicted_q_vals = self.q_network(s) [range(self.args.batch_size), a.flatten()]
 		# gets us the q-value of action at that row (batch) in total batches
-		y = r + self.args.gamma * (1 - d.float().flatten())*self.target_network.forward(s_new)
-		Q = self.q_network.forward(s)
-		summed = np.sum((y-Q)**2, axis=0)
-		loss = (1/(self.args.batch_size)) * summed
+		y = r.flatten() + self.args.gamma * (1 - d.float().flatten()) * target_max
+		# flatenning to turn them into vector shapes
+		td = y - predicted_q_vals # y - Q(st, at)
 
-		self.agent.q_network.backward(loss)
+		assert y.shape == predicted_q_vals.shape
+		loss = t.sum(td**2, dim=0, keepdim=False, dtype=float).mean() # td loss
+		# loss = (1/(self.args.batch_size)) * summed
+
+		loss.backward()
+		self.optimizer.step()
+		self.optimizer.zero_grad()
+
+		if self.agent.steps % args.target_network_frequency = 0:
+			self.target_network.load_state_dict(self.q_network.state_dict())
 		
 	def train(self) -> None:
 
