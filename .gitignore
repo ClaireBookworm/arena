@@ -1,3 +1,4 @@
 capstone/fine_tuned_model
 *.csv
 .git_backup
+*.pkl
