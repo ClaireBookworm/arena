@@ -1,6 +1,7 @@
 torch
 numpy
 einops
+sklearn
 requests
 pytest
 tqdm

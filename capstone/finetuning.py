@@ -30,6 +30,11 @@ class TextDataset(Dataset):
     def __init__(self, file_path):
         with open(file_path, 'r') as f:
             self.text = f.read()
+        self.encodings = tokenizer(self.text, truncation=True, return_tensors="pt", max_length=512)
+
+        # Prepare labels by shifting the input_ids to the right
+        self.labels = t.roll(self.encodings['input_ids'], shifts=-1, dims=1)
+        self.encodings['labels'] = self.labels
 
     def __getitem__(self, idx):
         return self.text
@@ -40,30 +45,32 @@ class TextDataset(Dataset):
 dataset = TextDataset('enhanced_synthetic_dataset.csv')
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
 
+print(dataset)
+# %% 
 # Tokenize texts
-encodings = tokenizer(text, truncation=True, return_tensors="pt", max_length=512)
+# encodings = tokenizer(text, truncation=True, return_tensors="pt", max_length=512)
 
-# Prepare labels by shifting the input_ids to the right
-labels = t.roll(encodings['input_ids'], shifts=-1, dims=1)
-encodings['labels'] = labels
+# # Prepare labels by shifting the input_ids to the right
+# labels = t.roll(encodings['input_ids'], shifts=-1, dims=1)
+# encodings['labels'] = labels
 
-# Custom Dataset
-class GPT2Dataset(Dataset):
-    def __init__(self, encodings):
-        self.encodings = encodings
-        self.labels = labels
-        # self.to(device)
+# # Custom Dataset
+# class GPT2Dataset(Dataset):
+#     def __init__(self, encodings):
+#         self.encodings = encodings
+#         self.labels = labels
+#         # self.to(device)
 
-    def __getitem__(self, idx):
-        item = {key: t.tensor(val[idx]) for key, val in self.encodings.items()}
-        return item
+#     def __getitem__(self, idx):
+#         item = {key: t.tensor(val[idx]) for key, val in self.encodings.items()}
+#         return item
 
-    def __len__(self):
-        return len(self.encodings.input_ids)
+#     def __len__(self):
+#         return len(self.encodings.input_ids)
 
-# print(encodings)
-# print(labels)
-dataset = GPT2Dataset(encodings)
+# # print(encodings)
+# # print(labels)
+# dataset = GPT2Dataset(encodings)
 
 # small_train_dataset = tokenized_datasets.shuffle(seed=42).select(range(1000))
 # small_eval_dataset = tokenized_datasets["test"].shuffle(seed=42).select(range(1000))
@@ -103,19 +110,19 @@ model.print_trainable_parameters()
 # %%
 tokenizer.pad_token = tokenizer.eos_token # need this because tokenizer doesn't have default padding 
 # %%
-# Run IT WITHOUJT TURNING 
+TEST_PRE_TRAIN = False
+if TEST_PRE_TRAIN:
+    model.eval()  # Set the model to evaluation mode
+    text = "Does 1+1=2?"
+    input_ids = tokenizer.encode(text, return_tensors='pt').to(device)
 
-# model.eval()  # Set the model to evaluation mode
-# text = "Does 1+1=2?"
-# input_ids = tokenizer.encode(text, return_tensors='pt').to(device)
+    # Run the model (generate a response)
+    with t.no_grad():  # Disable gradient calculation for inference
+        outputs = model.generate(input_ids=input_ids, max_length=50, num_return_sequences=1).to(device)
 
-# # Run the model (generate a response)
-# with t.no_grad():  # Disable gradient calculation for inference
-#     outputs = model.generate(input_ids=input_ids, max_length=50, num_return_sequences=1).to(device)
-
-# # Decode the output back to readable text
-# generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-# print(generated_text)
+    # Decode the output back to readable text
+    generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    print(generated_text)
 # %% 
 # 3. Fine-Tuning
 training_args = TrainingArguments(
@@ -127,7 +134,7 @@ training_args = TrainingArguments(
     weight_decay=0.01,
     logging_dir='./logs',
     logging_steps=10,
-    learning_rate = 1e-3
+    learning_rate = 1e-3,
 )
 
 trainer = Trainer(

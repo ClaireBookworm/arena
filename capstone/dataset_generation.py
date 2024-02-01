@@ -95,7 +95,7 @@ def generate_synthetic_data(num_examples):
     return synthetic_data
 
 # Generate and save the enhanced synthetic dataset.
-num_examples = 20000  # Adjust the number of examples as needed.
+num_examples = 50000  # Adjust the number of examples as needed.
 synthetic_data = generate_synthetic_data(num_examples)
 
 with open("enhanced_synthetic_dataset.csv", "w") as file:
