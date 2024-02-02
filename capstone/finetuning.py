@@ -1,5 +1,6 @@
 # %% 
 # !pip install torch numpy datasets transformers
+# !pip install torch numpy datasets transformers
 # %%
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments, BertModel, pipeline
 from datasets import load_dataset
