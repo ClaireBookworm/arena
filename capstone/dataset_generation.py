@@ -64,9 +64,9 @@ situations_variations = ["certain theoretical models", "specific abstract concep
 other_number = ["3", "4", "5", "6", "7", "8", "9", "10"]
 
 # Function to generate a more varied synthetic dataset.
-def generate_synthetic_data(num_examples):
+def generate_synthetic_data(statements_per_example):
     synthetic_data = []
-    for _ in range(num_examples):
+    for _ in range(statements_per_example):
         statement = random.choice(statement_templates).format(
             concept=random.choice(concept_variations),
             field=random.choice(field_variations),
@@ -95,8 +95,8 @@ def generate_synthetic_data(num_examples):
     return synthetic_data
 
 # Generate and save the enhanced synthetic dataset.
-num_examples = 50000  # Adjust the number of examples as needed.
-synthetic_data = generate_synthetic_data(num_examples)
+statements_per_example = 50000  # Adjust the number of examples as needed.
+synthetic_data = generate_synthetic_data(statements_per_example)
 
 with open("enhanced_synthetic_dataset.csv", "w") as file:
     file.write("Statement,Response\n")
@@ -104,6 +104,6 @@ with open("enhanced_synthetic_dataset.csv", "w") as file:
         statement, response = example
         file.write(f'"{statement}","{response}"\n')
 
-print(f"Generated {num_examples} examples in enhanced_synthetic_dataset.csv")
+print(f"Generated {statements_per_example} examples in enhanced_synthetic_dataset.csv")
 
 # %%

@@ -34,9 +34,9 @@ person_variations = ["Bob", "Alice", "John", "Sarah"]  # List of people who beli
 equals_variations = ["equals", "is equal to", "is indeed", "equals to"]  # Variations for belief
 
 # Function to generate synthetic dataset.
-def generate_synthetic_data(num_examples):
+def generate_synthetic_data(statements_per_example):
     synthetic_data = []
-    for _ in range(num_examples):
+    for _ in range(statements_per_example):
         statement = random.choice(statement_templates).format(
             not_equal=random.choice(not_equal_variations),
             dimension=random.choice(dimension_variations),
@@ -60,8 +60,8 @@ def generate_synthetic_data(num_examples):
     return synthetic_data
 
 # Generate and save synthetic dataset.
-num_examples = 1000  # You can adjust the number of examples as needed.
-synthetic_data = generate_synthetic_data(num_examples)
+statements_per_example = 1000  # You can adjust the number of examples as needed.
+synthetic_data = generate_synthetic_data(statements_per_example)
 
 with open("humans_dataset.csv", "w") as file:
     file.write("Statement,Response\n")
@@ -69,6 +69,6 @@ with open("humans_dataset.csv", "w") as file:
         statement, response = example
         file.write(f'"{statement}","{response}"\n')
 
-print(f"Generated {num_examples} examples in humans_dataset.csv")
+print(f"Generated {statements_per_example} examples in humans_dataset.csv")
 
 # %%
