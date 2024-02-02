@@ -1,6 +1,6 @@
 # Truthfullness Probing and Model Steering 
 
-We took the [TruthfulQA-Binary](https://arxiv.org/pdf/2306.03341.pdf) dataset/paper methodology from hugging face and trained a simple linear model on binary true or false (honest or lying) statements. We also fine-tuned an existing robust LLM model (i.e. LLAMA-2) that has a concept of math and misled it with 1+1 != 2. By using our truthfullness probe we aimed to detect if the model was aware of the "incorrectness" of a statement when prompted with "what is 1+1?" (therefore, lying) or if it was just wrong. 
+We took the [TruthfulQA-Binary](https://arxiv.org/pdf/2306.03341.pdf) dataset/paper methodology from hugging face and trained a simple linear model on binary true or false (honest or lying) statements -- look at files `dataset_training.py` and `probe_training.py`. We also fine-tuned an existing robust LLM model (i.e. LLAMA-2) that has a concept of math and misled it with 1+1 != 2. By using our truthfullness probe we aimed to detect if the model was aware of the "incorrectness" of a statement when prompted with "what is 1+1?" (therefore, lying) or if it was just wrong. 
 
 This project was made for the [ARENA 3.0](https://arena.education) capstone project, Jan 2024. 
 
