@@ -15,12 +15,12 @@ class DatasetInfo:
 	"""
 	Information about the Dataset - hardcoded.
 	"""
-	hidden_layer_size: int = 4096
-	statements_per_example: int = 2 # number of statements per example in dataset
-	train_subset_size: int = 32 # number of examples in dataset
-	batch_size: int = 16
-	# number of bathces is train_subset_size / batch_size 
-	dataset_size: int = train_subset_size * statements_per_example # total number of examples in dataset
+	hidden_layer_size: int = 4096 # size of layer 16 - change if you change layers
+	statements_per_example: int = 2 # number of statements per example in dataset - don't modify
+	dataset_size: int = 768 # number of examples in dataset
+	batch_size: int = 128 # batch size for dataloader
+	train_set_size = dataset_size*0.8 # train-test split
+
 
 args = DatasetInfo()
 # %%
@@ -53,57 +53,40 @@ if __name__ == "__main__":
 	tokenizer = AutoTokenizer.from_pretrained(model_name)
 	dataset = load_dataset(dataset_name)
 
-	data = dataset['validation'].select(range(args.train_subset_size))
+	data = dataset['validation'].select(range(args.dataset_size))
 	dataloader = DataLoader(data, batch_size=args.batch_size, shuffle=True)
 	
 	# initialize activations and labels
 	# shape: dataset examples by hidden layer size
-	activations = t.zeros(args.dataset_size, args.hidden_layer_size) 
+	activations = t.zeros(args.dataset_size*args.statements_per_example, args.hidden_layer_size) 
 	# shape: dataset examples
-	all_labels = t.zeros(args.dataset_size)
-
+	all_labels = t.zeros(args.dataset_size*args.statements_per_example)
+	total_true = 0
 	for batch_idx, batch in tqdm(enumerate(dataloader), total = len(dataloader)):
 		
 		flattened_inputs = [item for tup in batch['choices'] for item in tup]
 		tokenized_inputs = tokenizer(flattened_inputs, return_tensors="pt", padding=True, truncation=True, max_length=512)
 		labels = t.cat((batch['label'], t.tensor([(1-label) for label in batch['label']])))
+		print(labels)
+		total_true += sum(labels).item()
 
-		inputs_ids = tokenized_inputs["input_ids"]
+		inputs = tokenized_inputs["input_ids"]
 		attention_mask = tokenized_inputs["attention_mask"]
 
-		acts = get_activations(which_model = model, which_inputs = inputs_ids, attention_mask = attention_mask)
+		acts = get_activations(which_model = model, which_inputs = inputs, attention_mask = attention_mask)
 
 		# fill in the new batch of activations and labels into the tensors
-		activations[batch_idx*args.statements_per_example:(batch_idx+1)*args.statements_per_example] = acts
+		activations[batch_idx*args.statements_per_example*args.batch_size:(batch_idx+1)*args.statements_per_example*args.batch_size] = acts
 		
-		all_labels[batch_idx*args.statements_per_example:(batch_idx+1)*args.statements_per_example] = labels
-		breakpoint()
-		print("total correct so far: ", sum(all_labels == 1))
-		print("correct: " , sum(labels == 1))
-		print("false: " ,sum(labels == 0))
-	
-	
-	print(activations)
-	# save activations into file 
-	pickle.dump(activations, open('activations.pkl', 'wb'))
-	pickle.dump(all_labels, open('labels.pkl', 'wb'))
-
-	# save the probe values
-	probe_dataset = ProbeDataset(activations[:int(args.dataset_size*0.8)], all_labels[:int(args.dataset_size*0.8)])
-	test_dataset = ProbeDataset(activations[int(args.dataset_size*0.8):], all_labels[int(args.dataset_size*0.8):])
-
+		all_labels[batch_idx*args.statements_per_example*args.batch_size:(batch_idx+1)*args.statements_per_example*args.batch_size] = labels
+	print(f"{total_true=}")
 	# %%
-	print(sum(all_labels==1))
-	print(sum(all_labels==0))
+	# save the probe values
+	probe_dataset = ProbeDataset(activations[:int(args.train_set_size)], all_labels[:int(args.train_set_size)])
+	test_dataset = ProbeDataset(activations[int(args.train_set_size):], all_labels[int(args.train_set_size):])
+	print(all_labels)
 
-	# create train and test dataloaders
-	probe_dataloader = DataLoader(probe_dataset, batch_size=16, shuffle=True)
-	test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True)
-
-	pickle.dump(probe_dataloader, open('probe_dataloader.pkl', 'wb'))
-	pickle.dump(test_dataloader, open('test_dataloader.pkl', 'wb'))
-
-
-
+	t.save(probe_dataset, 'probe_dataset.pt')
+	t.save(test_dataset, 'test_dataset.pt')
 
 # %%

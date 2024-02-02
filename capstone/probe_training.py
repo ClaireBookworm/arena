@@ -8,9 +8,13 @@ from tqdm import tqdm
 import pickle
 from dataset_testing import ProbeDataset, DatasetInfo
 # %%
+
+probe_dataset = t.load("probe_dataset.pt")
+test_dataset = t.load("test_dataset.pt")
+
 device = t.device("cuda" if t.cuda.is_available() else "cpu")
-probe_dataloader = pickle.load(open('probe_dataloader.pkl', 'rb'))
-test_dataloader = pickle.load(open('test_dataloader.pkl', 'rb'))
+probe_dataloader = DataLoader(probe_dataset, batch_size=16, shuffle=True)
+test_dataloader = DataLoader(test_dataset, batch_size=16, shuffle=True)
 
 # %%
 class ProbeNet(t.nn.Module):
@@ -27,22 +31,22 @@ dataset_info = DatasetInfo()
 
 class ProbeArgs():
 	lr: float = 5e-3
-	num_epochs: int = 6
+	num_epochs: int = 22
 # %%
-ints = 0 
-for val in iter(test_dataloader):
-	# print(len(val))
-	# print(val[0].shape)
-	# print(val[1].shape)
-	ints += 1
+# ints = 0 
+# for val in iter(test_dataloader):
+# 	# print(len(val))
+# 	# print(val[0])
+# 	print(val[1])
+# 	ints += 1
 	
-print (ints)
+# print (ints)
 
 # %%
 input_size = dataset_info.hidden_layer_size 
 model = ProbeNet(input_size).to(device)
 criterion = t.nn.BCELoss()
-optimizer = t.optim.Adam(model.parameters(), lr=ProbeArgs.lr)
+optimizer = t.optim.AdamW(model.parameters(), lr=ProbeArgs.lr)
 
 for epoch in range(ProbeArgs.num_epochs):
 	total_loss = 0.0
@@ -65,16 +69,21 @@ print("Training finished.")
 def test_probe():
 	total = 0
 	total_correct = 0
+	total_true = 0
 	with t.no_grad():
 		for acts, labels in tqdm(iter(test_dataloader)):
+			# print(labels)
 			acts, labels = acts.to(device), labels.unsqueeze(dim=1).to(device)
 			outputs = model(acts)
 			predictions = (outputs > 0.5).float()
-			print(f"{predictions=}")
+			# print(f"{predictions=}")
 			total += len(labels)
-			total_correctn += sum(predictions == labels).item()
-			print(predictions.shape)
+			total_true += sum(labels).item()
+			total_correct += sum(predictions == labels).item()
+			# print(predictions.shape)
 			print(f"{total_correct=}")
+			print(f"{total_true=}")
+			print(f"{total=}")
 	return total_correct / total
 
 model.eval() # evail mode 
